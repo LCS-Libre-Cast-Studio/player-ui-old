@@ -1,23 +1,37 @@
-// Proxy-URL um die Browser-Sicherheitsbeschränkungen (CORS) zu umgehen
-const API_URL = "https://corsproxy.io/?https://media.alexgaming.dev/playlist.json";
+// Wir nutzen einen Array von Proxys. Wenn einer blockiert, wird der nächste versucht.
+const REGISTRY = "https://media.alexgaming.dev/playlist.json";
+const PROXIES = [
+    "", // Direkter Versuch (falls CORS doch mal klappt)
+    "https://corsproxy.io/?", 
+    "https://api.allorigins.win/raw?url="
+];
+
 const player = new Plyr('#player', { controls: ['play', 'progress', 'current-time', 'mute', 'volume'] });
 let library = [];
 
 async function init() {
-    try {
-        const res = await fetch(API_URL);
-        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-        
-        library = await res.json();
-        render('home');
-    } catch (err) {
-        console.error("LCS Load Error (Details):", err);
-        document.getElementById('content').innerHTML = `
-            <div class="col-span-full text-center p-10 text-red-500">
-                <p>Error: Could not load media registry.</p>
-                <p class="text-xs text-zinc-500">Check Konsole (F12) für Details.</p>
-            </div>`;
+    for (const proxy of PROXIES) {
+        try {
+            const url = proxy + encodeURIComponent(REGISTRY);
+            const res = await fetch(url);
+            
+            if (res.ok) {
+                library = await res.json();
+                render('home');
+                return; // Erfolg!
+            }
+        } catch (err) {
+            console.warn(`Proxy ${proxy || 'direct'} failed, trying next...`);
+        }
     }
+    
+    // Wenn alles fehlschlägt:
+    console.error("LCS Init Error: All registry attempts failed.");
+    document.getElementById('content').innerHTML = `
+        <div class="col-span-full text-center p-10 text-red-500">
+            <p>Error: Could not load media registry.</p>
+            <p class="text-xs text-zinc-500">Prüfe, ob die JSON-Datei öffentlich erreichbar ist.</p>
+        </div>`;
 }
 
 function render(view) {
@@ -42,7 +56,7 @@ document.getElementById('search').addEventListener('input', (e) => {
         if (query.startsWith('art:')) return m.artist.toLowerCase().includes(query.replace('art:', ''));
         return m.title.toLowerCase().includes(query) || m.artist.toLowerCase().includes(query);
     });
-    // Direktes Rendern der gefilterten Liste
+    
     const container = document.getElementById('content');
     container.innerHTML = filtered.map(m => `
         <div class="bg-[#181818] p-4 rounded-lg hover:bg-[#282828] transition-all cursor-pointer group" onclick="play('${m.url}')">
