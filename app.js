@@ -1,37 +1,22 @@
-// Wir nutzen einen Array von Proxys. Wenn einer blockiert, wird der nächste versucht.
-const REGISTRY = "https://media.alexgaming.dev/playlist.json";
-const PROXIES = [
-    "", // Direkter Versuch (falls CORS doch mal klappt)
-    "https://corsproxy.io/?", 
-    "https://api.allorigins.win/raw?url="
-];
-
+const API_URL = "./playlist.json";
 const player = new Plyr('#player', { controls: ['play', 'progress', 'current-time', 'mute', 'volume'] });
 let library = [];
 
 async function init() {
-    for (const proxy of PROXIES) {
-        try {
-            const url = proxy + encodeURIComponent(REGISTRY);
-            const res = await fetch(url);
-            
-            if (res.ok) {
-                library = await res.json();
-                render('home');
-                return; // Erfolg!
-            }
-        } catch (err) {
-            console.warn(`Proxy ${proxy || 'direct'} failed, trying next...`);
-        }
+    try {
+        const res = await fetch(API_URL);
+        if (!res.ok) throw new Error(`Status: ${res.status}`);
+        
+        library = await res.json();
+        render('home');
+    } catch (err) {
+        console.error("LCS Load Error:", err);
+        document.getElementById('content').innerHTML = `
+            <div class="col-span-full text-center p-10 text-red-500">
+                <p>Error: Could not load media registry.</p>
+                <p class="text-xs text-zinc-500">Die Datei wurde nicht gefunden oder ist ungültig.</p>
+            </div>`;
     }
-    
-    // Wenn alles fehlschlägt:
-    console.error("LCS Init Error: All registry attempts failed.");
-    document.getElementById('content').innerHTML = `
-        <div class="col-span-full text-center p-10 text-red-500">
-            <p>Error: Could not load media registry.</p>
-            <p class="text-xs text-zinc-500">Prüfe, ob die JSON-Datei öffentlich erreichbar ist.</p>
-        </div>`;
 }
 
 function render(view) {
