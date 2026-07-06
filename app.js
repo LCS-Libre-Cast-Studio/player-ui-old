@@ -4,17 +4,23 @@ let library = [];
 
 async function init() {
     try {
-        const res = await fetch(API_URL);
-        if (!res.ok) throw new Error(`Status: ${res.status}`);
+        const timestamp = new Date().getTime();
+        const res = await fetch(`${API_URL}?t=${timestamp}`);
         
-        library = await res.json();
+        if (!res.ok) throw new Error(`HTTP Status: ${res.status}`);
+        
+        const text = await res.text();
+        
+        console.log("Aktuelle Registry-Daten:", text);
+        
+        library = JSON.parse(text);
         render('home');
     } catch (err) {
-        console.error("LCS Load Error:", err);
+        console.error("LCS Init Error:", err);
         document.getElementById('content').innerHTML = `
             <div class="col-span-full text-center p-10 text-red-500">
                 <p>Error: Could not load media registry.</p>
-                <p class="text-xs text-zinc-500">Die Datei wurde nicht gefunden oder ist ungültig.</p>
+                <p class="text-xs text-zinc-500">Prüfe in der Konsole (F12), ob das JSON valide ist.</p>
             </div>`;
     }
 }
