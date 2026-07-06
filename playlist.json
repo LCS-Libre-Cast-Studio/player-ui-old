@@ -10,5 +10,11 @@
     "artist": "LCS",
     "type": "audio",
     "url": "https://nexnet.alexgamingdev.tech/audio/AUD-20260607-WA0027.mp3"
-  }
+  },
+  {
+    "title": "Flowers",
+    "artist": "adege",
+    "type": "video",
+    "url": "https://cdn.pixabay.com/video/2026/04/07/345062_large.mp4"
+  },
 ]
