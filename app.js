@@ -1,28 +1,13 @@
 const API_URL = "./playlist.json";
-const player = new Plyr('#player', { controls: ['play', 'progress', 'current-time', 'mute', 'volume'] });
+const player = new Plyr('#player', { controls: ['play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'] });
 let library = [];
 
 async function init() {
     try {
-        const timestamp = new Date().getTime();
-        const res = await fetch(`${API_URL}?t=${timestamp}`);
-        
-        if (!res.ok) throw new Error(`HTTP Status: ${res.status}`);
-        
-        const text = await res.text();
-        
-        console.log("Aktuelle Registry-Daten:", text);
-        
-        library = JSON.parse(text);
+        const res = await fetch(`${API_URL}?t=${new Date().getTime()}`);
+        library = await res.json();
         render('home');
-    } catch (err) {
-        console.error("LCS Init Error:", err);
-        document.getElementById('content').innerHTML = `
-            <div class="col-span-full text-center p-10 text-red-500">
-                <p>Error: Could not load media registry.</p>
-                <p class="text-xs text-zinc-500">Prüfe in der Konsole (F12), ob das JSON valide ist.</p>
-            </div>`;
-    }
+    } catch (err) { console.error("Load Error:", err); }
 }
 
 function render(view) {
@@ -30,38 +15,20 @@ function render(view) {
     const filtered = (view === 'home') ? library : library.filter(m => m.type === view);
     
     container.innerHTML = filtered.map(m => `
-        <div class="bg-[#181818] p-4 rounded-lg hover:bg-[#282828] transition-all cursor-pointer group" onclick="play('${m.url}')">
-            <div class="h-40 bg-[#282828] rounded mb-4 flex items-center justify-center font-bold text-zinc-600">
-                ${m.type.toUpperCase()}
+        <div class="bg-[#181818] p-4 rounded-md hover:bg-[#282828] transition-all cursor-pointer group flex flex-col gap-2" onclick="play('${m.url}', '${m.type}')">
+            <div class="w-full h-32 bg-[#282828] rounded flex items-center justify-center overflow-hidden">
+                ${m.icon ? `<img src="${m.icon}" class="w-full h-full object-cover">` : `<span class="text-xs text-zinc-500 uppercase">${m.type}</span>`}
             </div>
-            <h3 class="font-bold truncate">${m.title}</h3>
-            <p class="text-sm text-zinc-400 truncate">${m.artist}</p>
+            <div class="mt-1">
+                <h3 class="font-semibold text-sm truncate">${m.title}</h3>
+                <p class="text-xs text-zinc-400 truncate">${m.artist}</p>
+            </div>
         </div>
     `).join('');
 }
 
-document.getElementById('search').addEventListener('input', (e) => {
-    const query = e.target.value.toLowerCase();
-    const filtered = library.filter(m => {
-        if (query.startsWith('title:')) return m.title.toLowerCase().includes(query.replace('title:', ''));
-        if (query.startsWith('art:')) return m.artist.toLowerCase().includes(query.replace('art:', ''));
-        return m.title.toLowerCase().includes(query) || m.artist.toLowerCase().includes(query);
-    });
-    
-    const container = document.getElementById('content');
-    container.innerHTML = filtered.map(m => `
-        <div class="bg-[#181818] p-4 rounded-lg hover:bg-[#282828] transition-all cursor-pointer group" onclick="play('${m.url}')">
-            <div class="h-40 bg-[#282828] rounded mb-4 flex items-center justify-center font-bold text-zinc-600">
-                ${m.type.toUpperCase()}
-            </div>
-            <h3 class="font-bold truncate">${m.title}</h3>
-            <p class="text-sm text-zinc-400 truncate">${m.artist}</p>
-        </div>
-    `).join('');
-});
-
-function play(url) {
-    player.source = { type: 'audio', sources: [{ src: url, type: 'audio/mp3' }] };
+function play(url, type) {
+    player.source = { type: type === 'video' ? 'video' : 'audio', sources: [{ src: url, type: type === 'video' ? 'video/mp4' : 'audio/mp3' }] };
     player.play();
 }
 
